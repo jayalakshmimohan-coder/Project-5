@@ -1,146 +1,22 @@
-<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ESP32 BLE Control</title>
-
-<style>
-body{
-  font-family:Arial;
-  text-align:center;
-  background:#0f172a;
-  color:white;
-}
-
-.card{
-  width:340px;
-  margin:auto;
-  margin-top:40px;
-  padding:20px;
-  background:#1e293b;
-  border-radius:15px;
-}
-
-button{
-  width:100%;
-  padding:14px;
-  margin:6px 0;
-  border:none;
-  font-size:16px;
-  border-radius:10px;
-  cursor:pointer;
-  color:white;
-}
-
-.connect{background:#8b5cf6;}
-.on{background:#22c55e;}
-.off{background:#ef4444;}
-.inc{background:#3b82f6;}
-.dec{background:#f59e0b;}
-
-.slider{
-  width:100%;
-  margin-top:15px;
-}
-
-#status{
-  margin-top:10px;
-  color:#38bdf8;
-}
-</style>
+<title>QR Page</title>
 </head>
 
-<body>
+<body style="text-align:center;font-family:Arial;background:#0f172a;color:white;">
 
-<div class="card">
+<h2>📱 ESP32 Control QR</h2>
 
-<h2>ESP32 BLE Dimmer</h2>
+<p>Scan this QR to open Control App</p>
 
-<button class="connect" onclick="connectBLE()">
-Connect Bluetooth
-</button>
+<img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https://project-5-tp.netlify.app">
 
-<button class="on" onclick="setValue(255)">ON</button>
-<button class="off" onclick="setValue(0)">OFF</button>
+<br><br>
 
-<button class="inc" onclick="increase()">INCREASE</button>
-<button class="dec" onclick="decrease()">DECREASE</button>
+<a href="https://project-5-tp.netlify.app" style="color:#38bdf8;">
 
-<input class="slider" type="range" min="0" max="255" value="0"
-id="slider" oninput="sliderChange(this.value)">
-
-<p id="status">Not Connected</p>
-
-</div>
-
-<script>
-
-let device;
-let characteristic;
-
-let currentValue = 0;
-
-const SERVICE_UUID = "12345678-1234-1234-1234-123456789abc";
-const CHAR_UUID    = "abcd1234-5678-1234-5678-abcdef123456";
-
-async function connectBLE() {
-  try {
-
-    device = await navigator.bluetooth.requestDevice({
-      filters: [{ services: [SERVICE_UUID] }]
-    });
-
-    const server = await device.gatt.connect();
-    const service = await server.getPrimaryService(SERVICE_UUID);
-    characteristic = await service.getCharacteristic(CHAR_UUID);
-
-    document.getElementById("status").innerText =
-      "Connected: " + device.name;
-
-  } catch (err) {
-    document.getElementById("status").innerText =
-      "Connection Failed";
-  }
-}
-
-async function sendValue(val){
-  if (!characteristic) return;
-
-  currentValue = val;
-
-  document.getElementById("slider").value = val;
-
-  let data = new TextEncoder().encode(val.toString());
-  await characteristic.writeValue(data);
-
-  document.getElementById("status").innerText =
-    "Value: " + val;
-}
-
-function setValue(val){
-  sendValue(val);
-}
-
-function sliderChange(val){
-  sendValue(parseInt(val));
-}
-
-function increase(){
-  currentValue += 20;
-  if(currentValue > 255) currentValue = 255;
-
-  sendValue(currentValue);
-}
-
-function decrease(){
-  currentValue -= 20;
-  if(currentValue < 0) currentValue = 0;
-
-  sendValue(currentValue);
-}
-
-</script>
 
 </body>
 </html>
