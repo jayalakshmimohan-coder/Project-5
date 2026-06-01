@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Smart IoT Control</title>
+
+  <style>
+    body{
+      font-family: Arial;
+      text-align:center;
+      background:#0f172a;
+      color:white;
+    }
+
+    .card{
+      width:340px;
+      margin:auto;
+      margin-top:40px;
+      padding:20px;
+      background:#1e293b;
+      border-radius:15px;
+      box-shadow:0 0 20px rgba(0,0,0,0.6);
+    }
+
+    button{
+      width:100%;
+      padding:14px;
+      margin:6px 0;
+      border:none;
+      font-size:16px;
+      border-radius:10px;
+      cursor:pointer;
+      color:white;
+    }
+
+    .on{background:#22c55e;}
+    .off{background:#ef4444;}
+    .inc{background:#3b82f6;}
+    .dec{background:#f59e0b;}
+
+    input[type=range]{
+      width:100%;
+      margin:12px 0;
+    }
+
+    #status{
+      margin-top:10px;
+      font-weight:bold;
+      color:#38bdf8;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="card">
+  <h2>Device control </h2>
+
+  <button class="on" onclick="sendMsg('ON')">TURN ON</button>
+  <button class="off" onclick="sendMsg('OFF')">TURN OFF</button>
+
+  <button class="inc" onclick="sendMsg('INC')">INCREASE</button>
+  <button class="dec" onclick="sendMsg('DEC')">DECREASE</button>
+
+  <input type="range" min="0" max="100" value="50"
+         oninput="sendSlider(this.value)">
+
+  <p id="status">Connecting...</p>
+</div>
+
+<script>
+
+let ws;
+
+// ESP32 IP
+let url = "ws://192.168.4.1:81/";
+
+function connect(){
+
+  ws = new WebSocket(url);
+
+  ws.onopen = () => {
+    document.getElementById("status").innerHTML =
+      "Connected";
+  };
+
+  ws.onmessage = (msg) => {
+    document.getElementById("status").innerHTML =
+      msg.data;
+  };
+
+  ws.onclose = () => {
+    document.getElementById("status").innerHTML =
+      "Disconnected";
+  };
+}
+
+function sendMsg(msg){
+  if(ws && ws.readyState === 1){
+    ws.send(msg);
+  }
+}
+
+function sendSlider(val){
+  if(ws && ws.readyState === 1){
+    ws.send("SLIDER:" + val);
+  }
+}
+
+connect();
+
+</script>
+
+</body>
+</html>
