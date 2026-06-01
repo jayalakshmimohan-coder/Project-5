@@ -1,113 +1,144 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Smart IoT Control</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ESP32 BLE Control</title>
 
-  <style>
-    body{
-      font-family: Arial;
-      text-align:center;
-      background:#0f172a;
-      color:white;
-    }
+<style>
+body{
+  font-family:Arial;
+  text-align:center;
+  background:#0f172a;
+  color:white;
+}
 
-    .card{
-      width:340px;
-      margin:auto;
-      margin-top:40px;
-      padding:20px;
-      background:#1e293b;
-      border-radius:15px;
-      box-shadow:0 0 20px rgba(0,0,0,0.6);
-    }
+.card{
+  width:340px;
+  margin:auto;
+  margin-top:40px;
+  padding:20px;
+  background:#1e293b;
+  border-radius:15px;
+}
 
-    button{
-      width:100%;
-      padding:14px;
-      margin:6px 0;
-      border:none;
-      font-size:16px;
-      border-radius:10px;
-      cursor:pointer;
-      color:white;
-    }
+button{
+  width:100%;
+  padding:14px;
+  margin:6px 0;
+  border:none;
+  font-size:16px;
+  border-radius:10px;
+  cursor:pointer;
+  color:white;
+}
 
-    .on{background:#22c55e;}
-    .off{background:#ef4444;}
-    .inc{background:#3b82f6;}
-    .dec{background:#f59e0b;}
+.connect{background:#8b5cf6;}
+.on{background:#22c55e;}
+.off{background:#ef4444;}
+.inc{background:#3b82f6;}
+.dec{background:#f59e0b;}
 
-    input[type=range]{
-      width:100%;
-      margin:12px 0;
-    }
+.slider{
+  width:100%;
+  margin-top:15px;
+}
 
-    #status{
-      margin-top:10px;
-      font-weight:bold;
-      color:#38bdf8;
-    }
-  </style>
+#status{
+  margin-top:10px;
+  color:#38bdf8;
+}
+</style>
 </head>
 
 <body>
 
 <div class="card">
-  <h2>Device control </h2>
 
-  <button class="on" onclick="sendMsg('ON')">TURN ON</button>
-  <button class="off" onclick="sendMsg('OFF')">TURN OFF</button>
+<h2>ESP32 BLE Dimmer</h2>
 
-  <button class="inc" onclick="sendMsg('INC')">INCREASE</button>
-  <button class="dec" onclick="sendMsg('DEC')">DECREASE</button>
+<button class="connect" onclick="connectBLE()">
+Connect Bluetooth
+</button>
 
-  <input type="range" min="0" max="100" value="50"
-         oninput="sendSlider(this.value)">
+<button class="on" onclick="setValue(255)">ON</button>
+<button class="off" onclick="setValue(0)">OFF</button>
 
-  <p id="status">Connecting...</p>
+<button class="inc" onclick="increase()">INCREASE</button>
+<button class="dec" onclick="decrease()">DECREASE</button>
+
+<input class="slider" type="range" min="0" max="255" value="0"
+id="slider" oninput="sliderChange(this.value)">
+
+<p id="status">Not Connected</p>
+
 </div>
 
 <script>
 
-let ws;
+let device;
+let characteristic;
 
-// ESP32 IP
-let url = "ws://192.168.4.1:81/";
+let currentValue = 0;
 
-function connect(){
+const SERVICE_UUID = "12345678-1234-1234-1234-123456789abc";
+const CHAR_UUID    = "abcd1234-5678-1234-5678-abcdef123456";
 
-  ws = new WebSocket(url);
+async function connectBLE() {
+  try {
 
-  ws.onopen = () => {
-    document.getElementById("status").innerHTML =
-      "Connected";
-  };
+    device = await navigator.bluetooth.requestDevice({
+      filters: [{ services: [SERVICE_UUID] }]
+    });
 
-  ws.onmessage = (msg) => {
-    document.getElementById("status").innerHTML =
-      msg.data;
-  };
+    const server = await device.gatt.connect();
+    const service = await server.getPrimaryService(SERVICE_UUID);
+    characteristic = await service.getCharacteristic(CHAR_UUID);
 
-  ws.onclose = () => {
-    document.getElementById("status").innerHTML =
-      "Disconnected";
-  };
-}
+    document.getElementById("status").innerText =
+      "Connected: " + device.name;
 
-function sendMsg(msg){
-  if(ws && ws.readyState === 1){
-    ws.send(msg);
+  } catch (err) {
+    document.getElementById("status").innerText =
+      "Connection Failed";
   }
 }
 
-function sendSlider(val){
-  if(ws && ws.readyState === 1){
-    ws.send("SLIDER:" + val);
-  }
+async function sendValue(val){
+  if (!characteristic) return;
+
+  currentValue = val;
+
+  document.getElementById("slider").value = val;
+
+  let data = new TextEncoder().encode(val.toString());
+  await characteristic.writeValue(data);
+
+  document.getElementById("status").innerText =
+    "Value: " + val;
 }
 
-connect();
+function setValue(val){
+  sendValue(val);
+}
+
+function sliderChange(val){
+  sendValue(parseInt(val));
+}
+
+function increase(){
+  currentValue += 20;
+  if(currentValue > 255) currentValue = 255;
+
+  sendValue(currentValue);
+}
+
+function decrease(){
+  currentValue -= 20;
+  if(currentValue < 0) currentValue = 0;
+
+  sendValue(currentValue);
+}
 
 </script>
 
